@@ -1,0 +1,22 @@
+---
+description: Pre-launch security invariants for Next.js, Supabase, Stripe & AI endpoints (Shipmate / ShipReady)
+globs:
+  - "**/*.sql"
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - ".env*"
+alwaysApply: true
+---
+
+# Shipmate Security Rules (Cursor `.mdc`)
+
+Enforce these security invariants on every edit. Full rule docs: https://shipmate.agency/rules/
+
+- **Supabase & Postgres RLS:** Every `CREATE TABLE` in `public` MUST include `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` in the same migration. Never use `USING (true)` or `WITH CHECK (true)` on `ALL`/`INSERT`/`UPDATE`/`DELETE` policies. Use `WITH (security_invoker = true)` on client-facing views.
+- **No client-exposed secrets:** Never place `service_role`, Stripe secrets, webhook secrets, or LLM API keys in `NEXT_PUBLIC_*`, `VITE_*`, or browser bundles. Keep `.env` in `.gitignore`.
+- **Auth on every mutation:** Treat every Next.js Server Action (`"use server"`) and `/api/*` route as a public HTTP endpoint; verify server session and resource ownership on the server.
+- **Signed Stripe webhooks only:** Read raw `await req.text()` and validate via `stripe.webhooks.constructEvent(rawBody, sig, secret)` before changing billing entitlements.
+- **Bounded AI spend:** Require auth, rate limits, and explicit `max_output_tokens` on every LLM proxy route.
+- **Local scan:** Run `shipready_scan_repo` before merging to production.
