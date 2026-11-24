@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "shipready": {
+      "command": "python3",
+      "args": ["server.py"]
+    }
+  }
+}
