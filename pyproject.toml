@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shipready-mcp"
+version = "0.1.0"
+description = "Zero-dependency MCP server by Shipmate for local Next.js, Supabase, and Stripe pre-launch security checks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Shipmate", email = "hello@shipmate.agency" }]
+keywords = ["mcp", "security", "supabase", "nextjs", "stripe", "cursor", "claude"]
+
+[project.urls]
+Homepage = "https://shipmate.agency"
+Rules = "https://shipmate.agency/rules/"
+
+[project.scripts]
+shipready-mcp = "server:main"
+
+[tool.setuptools]
+py-modules = ["server"]

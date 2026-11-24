@@ -1,0 +1,8 @@
+# Smithery registry manifest (https://smithery.ai)
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |-
+    () => ({ command: "python3", args: ["server.py"] })

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["deeflect"],
+  "name": "shipready-mcp",
+  "description": "Local pre-launch security checks for Next.js, Supabase, Stripe, Cursor and Lovable apps by Shipmate.",
+  "homepage": "https://shipmate.agency/rules/"
+}

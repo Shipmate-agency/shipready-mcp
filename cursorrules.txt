@@ -1,0 +1,25 @@
+# Shipmate Vibe-Code Security Rules (.cursorrules)
+# Source & rule docs: https://shipmate.agency/rules/
+
+You are writing production code for a web app with real users and payments. Follow these security invariants on every edit:
+
+1. SUPABASE & POSTGRES RLS
+- Every table in `public` MUST have `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` in the same migration that creates it.
+- Never write `USING (true)` on `FOR ALL`, `FOR INSERT`, `FOR UPDATE`, or `FOR DELETE` policies. Always bind rows to `auth.uid()` or verified workspace membership.
+- Views exposed to clients must use `WITH (security_invoker = true)` (never default `SECURITY DEFINER`).
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` in client bundles, `NEXT_PUBLIC_*`, or `VITE_*` variables.
+
+2. NEXT.JS SERVER ACTIONS & API ROUTES
+- Treat every Server Action (`"use server"`) and `/api/*` route as a public HTTP endpoint.
+- Always derive the acting user from the server session—never trust `userId`, `orgId`, `role`, or `price` sent from the client.
+
+3. STRIPE & BILLING
+- Never upgrade a user's plan from a client callback alone.
+- Every Stripe webhook handler MUST read the raw request body and call `stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET)` before mutating state.
+
+4. AI / LLM ENDPOINTS
+- Every route calling OpenAI, Anthropic, or Gemini MUST require authentication, enforce a per-user rate limit, and set an explicit `max_tokens` / `max_output_tokens` cap.
+
+5. PRE-LAUNCH CHECK
+- Before merging to production, run `shipready_scan_repo` (or `https://shipmate.agency/check` for a free passive check).
+- Before onboarding paying or enterprise customers, verify tenant isolation with two separate accounts (https://shipmate.agency/articles/supabase-rls-two-account-test).
