@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "agency.shipmate/shipready-mcp",
+  "description": "Zero-dependency local MCP server checking Next.js, Supabase, Stripe, Cursor & Lovable repos for missing RLS, exposed secrets, and unsigned webhooks.",
+  "repository": {
+    "url": "https://github.com/Shipmate-agency/shipready-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registry_type": "pypi",
+      "identifier": "shipready-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
