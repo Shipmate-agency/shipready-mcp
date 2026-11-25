@@ -40,6 +40,16 @@ class TestDetection(unittest.TestCase):
         committed = scan_ids({".env.production": f"STRIPE_SECRET_KEY={key}\n", ".gitignore": ".env\n"})
         self.assertEqual(committed, [("SR-SEC-002", ".env.production")])
 
+    def test_hardcoded_key_formats(self) -> None:
+        keys = [
+            "rk" + "_live_" + "51Habcdefghijklmnopqrstuvwx",
+            "github" + "_pat_" + "11ABCDEFG0123456789_" + "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRS",
+            "sk" + "-ant-api03-" + "abcdefghijklmnopqrstuvwxyz0123456789",
+        ]
+        src = "".join(f"const k{i} = '{k}';\n" for i, k in enumerate(keys))
+        self.assertEqual(scan_ids({"lib/keys.ts": src}).count(("SR-SEC-002", "lib/keys.ts")), 3)
+        self.assertEqual(scan_ids({"lib/keys.ts": "const pk = 'pk_live_51Habcdefghijklmnopqrstuvwx';\n"}), [])
+
     def test_unsigned_webhook_without_stripe_import(self) -> None:
         body = 'export async function POST(req) { const e = await req.json(); if (e.type === "checkout.session.completed") upgrade(); }\n'
         self.assertIn(("SR-PAY-001", "app/api/webhooks/route.ts"), scan_ids({"app/api/webhooks/route.ts": body}))

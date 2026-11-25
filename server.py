@@ -50,7 +50,7 @@ PUBLIC_SECRET_RE = re.compile(
     r"\b(?:NEXT_PUBLIC_|VITE_|PUBLIC_)[A-Z0-9_]*(?:SECRET|SERVICE_ROLE|PRIVATE|API_KEY|TOKEN)[A-Z0-9_]*\s*=",
     re.IGNORECASE,
 )
-HARDCODED_KEY_RE = re.compile(r"\b(?:sk_live_[A-Za-z0-9]{16,}|sk-(?:proj-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,})\b")
+HARDCODED_KEY_RE = re.compile(r"\b(?:[sr]k_live_[A-Za-z0-9]{16,}|sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{60,})\b")
 CREATE_TABLE_RE = re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_.\"]+)", re.IGNORECASE)
 USING_TRUE_RE = re.compile(r"create\s+policy[\s\S]{0,220}?\bfor\s+(?:all|insert|update|delete)\b[\s\S]{0,220}?using\s*\(\s*true\s*\)", re.IGNORECASE)
 
