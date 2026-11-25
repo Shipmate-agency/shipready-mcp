@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Zero-dependency MCP server by Shipmate for local Next.js, Supabase, and Stripe pre-launch security checks."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Shipmate", email = "hello@shipmate.agency" }]
 keywords = ["mcp", "security", "supabase", "nextjs", "stripe", "cursor", "claude"]
 
