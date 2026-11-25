@@ -5,7 +5,7 @@ You are writing production code for a web app with real users and payments. Foll
 
 1. SUPABASE & POSTGRES RLS
 - Every table in `public` MUST have `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` in the same migration that creates it.
-- Never write `USING (true)` on `FOR ALL`, `FOR INSERT`, `FOR UPDATE`, or `FOR DELETE` policies. Always bind rows to `auth.uid()` or verified workspace membership.
+- Never write `USING (true)` or `WITH CHECK (true)` on `FOR ALL`, `FOR INSERT`, `FOR UPDATE`, or `FOR DELETE` policies (a policy with no `FOR` clause is `FOR ALL`). Always bind rows to `auth.uid()` or verified workspace membership.
 - Views exposed to clients must use `WITH (security_invoker = true)` (never default `SECURITY DEFINER`).
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in client bundles, `NEXT_PUBLIC_*`, or `VITE_*` variables.
 
