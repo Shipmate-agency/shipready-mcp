@@ -6,6 +6,8 @@
 
 # ShipReady MCP Server — Local Security Checks for Cursor & Claude Code
 
+<!-- mcp-name: agency.shipmate/shipready-mcp -->
+
 [![Shipmate](https://img.shields.io/badge/Shipmate-shipmate.agency-1E57A8?style=flat-square)](https://shipmate.agency)
 [![MCP Protocol](https://img.shields.io/badge/MCP-stdio_JSON--RPC-11141C?style=flat-square)](./server.json)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_(Python_3.10+)-11141C?style=flat-square)](./server.py)
@@ -26,7 +28,15 @@
 
 ## Quick Install
 
-### Cursor (`.cursor/mcp.json`)
+ShipReady MCP is not published on PyPI or npm yet, so install it from this repository. Needs Python 3.10+.
+
+```bash
+git clone https://github.com/Shipmate-agency/shipready-mcp
+```
+
+Then point your client at the absolute path of `server.py` in that clone (replace `/path/to/shipready-mcp` below). With [uv](https://docs.astral.sh/uv/) you can skip the clone and use `"command": "uvx", "args": ["--from", "git+https://github.com/Shipmate-agency/shipready-mcp", "shipready-mcp"]` instead.
+
+### Cursor (`.cursor/mcp.json` in your project, or `~/.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
@@ -43,8 +53,22 @@
 claude mcp add shipready -- python3 /path/to/shipready-mcp/server.py
 ```
 
+### Windsurf (`~/.codeium/windsurf/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "shipready": {
+      "command": "python3",
+      "args": ["/path/to/shipready-mcp/server.py"]
+    }
+  }
+}
+```
+
+Then ask the agent to run `shipready_scan_repo` on your project directory. The scanner checks the seven rules in the table above; `shipready_list_rules` lists all 14 ShipReady rules; the other seven (HTTP headers, exposed dotfiles, public schema) need a live deployment and are not checked locally.
+
 ### Included IDE Guardrails
-- [`rules/shipmate-security.mdc`](./rules/shipmate-security.mdc) — Cursor `.mdc` rule pack (auto-detected by Cursor Directory)
+- [`rules/shipmate-security.mdc`](./rules/shipmate-security.mdc) — Cursor rule; copy it into your project's `.cursor/rules/`
 - [`cursorrules.txt`](./cursorrules.txt) — Drop-in `.cursorrules` security invariants
 - [`CLAUDE.security.md`](./CLAUDE.security.md) — Drop-in Claude Code security section
 
