@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import subprocess
 import sys
@@ -60,6 +61,18 @@ class TestDetection(unittest.TestCase):
             (Path(td) / "a.sql").write_text(sql, encoding="utf-8")
             lines = [f["line"] for f in server._fallback_scan(Path(td)) if f["rule_id"] == "SR-SUPA-002"]
         self.assertEqual(lines, [5, 6])
+
+    def test_service_role_key_by_jwt_payload(self) -> None:
+        def jwt(role: str) -> str:
+            b = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
+            return b({"alg": "HS256"}) + "." + b({"iss": "supabase", "role": role}) + ".c2lnbmF0dXJl"
+        ids = scan_ids({
+            "lib/admin.ts": f"export const admin = createClient(url, '{jwt('service_role')}')\n",
+            "lib/anon.ts": f"export const sb = createClient(url, '{jwt('anon')}')\n",
+            "lib/server.ts": "// service_role key, server only\nexport const a = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!)\n",
+            "lib/new.ts": "const k = '" + "sb" + "_secret_" + "abcdefghijklmnopqrstuvwxyz012345';\n",
+        })
+        self.assertEqual(sorted(ids), [("SR-SUPA-003", "lib/admin.ts"), ("SR-SUPA-003", "lib/new.ts")])
 
     def test_hardcoded_key_formats(self) -> None:
         keys = [

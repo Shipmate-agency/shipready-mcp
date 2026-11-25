@@ -8,6 +8,7 @@ secrets, and unsigned Stripe webhooks locally.
 
 from __future__ import annotations
 
+import base64
 import fnmatch
 import importlib.util
 import json
@@ -51,7 +52,10 @@ PUBLIC_SECRET_RE = re.compile(
     re.IGNORECASE,
 )
 HARDCODED_KEY_RE = re.compile(r"\b(?:[sr]k_live_[A-Za-z0-9]{16,}|sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{60,})\b")
-CREATE_TABLE_RE = re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_.\"]+)", re.IGNORECASE)
+# The service_role key is a JWT whose payload says role=service_role; the literal word is not in it.
+JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]+\.(eyJ[A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+")
+SB_SECRET_RE = re.compile(r"\bsb_secret_[A-Za-z0-9_-]{20,}")
+CREATE_TABLE_RE =re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_.\"]+)", re.IGNORECASE)
 ENABLE_RLS_RE = re.compile(
     r"alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?([a-zA-Z0-9_.\"]+)\s+enable\s+row\s+level\s+security", re.IGNORECASE
 )
@@ -74,6 +78,13 @@ def _load_shipready_module() -> Any | None:
                 spec.loader.exec_module(mod)
                 return mod
     return None
+
+
+def _jwt_role(payload: str) -> Any:
+    try:
+        return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4))).get("role")
+    except (ValueError, AttributeError):
+        return None
 
 
 def _line_no(text: str, pos: int) -> int:
@@ -136,9 +147,11 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
             for m in ([] if fname.startswith(".env") and gitignored(fname) else HARDCODED_KEY_RE.finditer(text)):
                 add("SR-SEC-002", rel, _line_no(text, m.start()), "Hardcoded live API key detected")
 
-            if "service_role" in text and ("createClient" in text or "eyJ" in text):
-                idx = text.find("service_role")
-                add("SR-SUPA-003", rel, _line_no(text, idx), "Potential Supabase service_role key reference in source")
+            for m in ([] if fname.startswith(".env") and gitignored(fname) else JWT_RE.finditer(text)):
+                if _jwt_role(m.group(1)) == "service_role":
+                    add("SR-SUPA-003", rel, _line_no(text, m.start()), "Hardcoded Supabase service_role JWT")
+            for m in ([] if fname.startswith(".env") and gitignored(fname) else SB_SECRET_RE.finditer(text)):
+                add("SR-SUPA-003", rel, _line_no(text, m.start()), "Hardcoded Supabase secret key (sb_secret_)")
 
             # An unsigned handler often never imports stripe, so the path or event names count too.
             is_stripe = "stripe" in rel.lower() or "stripe" in text.lower() or "checkout.session" in text
