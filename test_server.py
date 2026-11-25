@@ -71,6 +71,18 @@ class TestShipReadyMCP(unittest.TestCase):
                 proc.terminate()
                 proc.wait(timeout=5)
 
+    def test_scan_works_from_shallow_install_path(self) -> None:
+        # Server used to index Path(__file__).parents[4] and raise IndexError near /.
+        with tempfile.TemporaryDirectory(dir="/tmp") as inst, tempfile.TemporaryDirectory() as repo:
+            server = Path(inst) / "server.py"
+            server.write_bytes(SERVER.read_bytes())
+            req = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                   "params": {"name": "shipready_scan_repo", "arguments": {"path": repo}}}
+            out = subprocess.run([sys.executable, str(server)], input=json.dumps(req) + "\n",
+                                 capture_output=True, text=True, timeout=10)
+            result = json.loads(out.stdout)["result"]
+            self.assertNotIn("isError", result)
+
     def test_protocol_version_negotiation(self) -> None:
         def negotiated(version: str | None) -> str:
             params = {} if version is None else {"protocolVersion": version}

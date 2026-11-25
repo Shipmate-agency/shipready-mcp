@@ -59,11 +59,7 @@ def _load_shipready_module() -> Any | None:
     env_path = os.environ.get("SHIPREADY_CHECK_PY")
     if env_path:
         candidates.append(Path(env_path))
-    here = Path(__file__).resolve()
-    candidates.extend([
-        here.parent / "check.py",
-        here.parents[4] / "vibe-code-security-checklist" / "check.py",
-    ])
+    candidates.append(Path(__file__).resolve().parent / "check.py")
     for cand in candidates:
         if cand.is_file():
             spec = importlib.util.spec_from_file_location("shipready_check", cand)
