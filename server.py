@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any
 
 SERVER_INFO = {"name": "shipready-mcp", "version": "0.1.0"}
-PROTOCOL_VERSION = "2024-11-05"
+# Handshake-era revisions this server implements (2025-03-26 omitted: it requires JSON-RPC batches).
+SUPPORTED_PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2024-11-05")
 RULES_BASE = "https://shipmate.agency/rules/"
 LOCKDOWN_NOTE = (
     "Automated static checks cannot verify business-logic IDOR, multi-tenant edge cases, "
@@ -214,11 +215,12 @@ def handle_request(msg: Any) -> dict[str, Any] | None:
     if method == "ping":
         return {"jsonrpc": "2.0", "id": req_id, "result": {}}
     if method == "initialize":
+        requested = (msg.get("params") or {}).get("protocolVersion")
         return {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
-                "protocolVersion": PROTOCOL_VERSION,
+                "protocolVersion": requested if requested in SUPPORTED_PROTOCOL_VERSIONS else SUPPORTED_PROTOCOL_VERSIONS[0],
                 "capabilities": {"tools": {}},
                 "serverInfo": SERVER_INFO,
             },

@@ -71,6 +71,22 @@ class TestShipReadyMCP(unittest.TestCase):
                 proc.terminate()
                 proc.wait(timeout=5)
 
+    def test_protocol_version_negotiation(self) -> None:
+        def negotiated(version: str | None) -> str:
+            params = {} if version is None else {"protocolVersion": version}
+            out = subprocess.run(
+                [sys.executable, str(SERVER)],
+                input=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": params}) + "\n",
+                capture_output=True, text=True, timeout=10,
+            )
+            return json.loads(out.stdout)["result"]["protocolVersion"]
+
+        self.assertEqual(negotiated("2024-11-05"), "2024-11-05")
+        self.assertEqual(negotiated("2025-06-18"), "2025-06-18")
+        self.assertEqual(negotiated("2025-11-25"), "2025-11-25")
+        self.assertEqual(negotiated("1999-01-01"), "2025-11-25")
+        self.assertEqual(negotiated(None), "2025-11-25")
+
     def test_protocol_errors_keep_server_alive(self) -> None:
         lines = [
             "{not json",
