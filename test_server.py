@@ -74,6 +74,18 @@ class TestDetection(unittest.TestCase):
         })
         self.assertEqual(sorted(ids), [("SR-SUPA-003", "lib/admin.ts"), ("SR-SUPA-003", "lib/new.ts")])
 
+    def test_symlinks_are_not_followed_and_values_not_echoed(self) -> None:
+        key = "sk" + "_live_" + "1234567890abcdef1234"
+        with tempfile.TemporaryDirectory() as outside, tempfile.TemporaryDirectory() as repo:
+            (Path(outside) / "x.sql").write_text("create table leak (id int);\n", encoding="utf-8")
+            (Path(repo) / "linkdir").symlink_to(outside)
+            (Path(repo) / "link.sql").symlink_to(Path(outside) / "x.sql")
+            self.assertEqual(server._fallback_scan(Path(repo)), [])
+            (Path(repo) / "k.ts").write_text(f"const k = '{key}';\n", encoding="utf-8")
+            out = json.dumps(server.scan_repo(repo))
+            self.assertIn("SR-SEC-002", out)
+            self.assertNotIn(key, out)
+
     def test_hardcoded_key_formats(self) -> None:
         keys = [
             "rk" + "_live_" + "51Habcdefghijklmnopqrstuvwx",
