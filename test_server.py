@@ -30,6 +30,12 @@ class TestDetection(unittest.TestCase):
         ids = scan_ids({".env.example": "NEXT_PUBLIC_STRIPE_SECRET_KEY=\nVITE_SUPABASE_SERVICE_ROLE_KEY=\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\n"})
         self.assertEqual(ids.count(("SR-SEC-001", ".env.example")), 2)
 
+    def test_unsigned_webhook_without_stripe_import(self) -> None:
+        body = 'export async function POST(req) { const e = await req.json(); if (e.type === "checkout.session.completed") upgrade(); }\n'
+        self.assertIn(("SR-PAY-001", "app/api/webhooks/route.ts"), scan_ids({"app/api/webhooks/route.ts": body}))
+        signed = "const e = stripe.webhooks.constructEvent(await req.text(), sig, secret)\n"
+        self.assertEqual(scan_ids({"app/api/stripe/webhook/route.ts": signed}), [])
+
 
 class TestShipReadyMCP(unittest.TestCase):
     def _rpc(self, proc: subprocess.Popen[bytes], payload: dict) -> dict:

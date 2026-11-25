@@ -127,7 +127,9 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
                 idx = text.find("service_role")
                 add("SR-SUPA-003", rel, _line_no(text, idx), "Potential Supabase service_role key reference in source")
 
-            if ("webhook" in rel.lower() and "stripe" in text.lower()) and "constructEvent" not in text:
+            # An unsigned handler often never imports stripe, so the path or event names count too.
+            is_stripe = "stripe" in rel.lower() or "stripe" in text.lower() or "checkout.session" in text
+            if "webhook" in rel.lower() and is_stripe and "constructEvent" not in text:
                 add("SR-PAY-001", rel, 1, "Stripe webhook handler does not call stripe.webhooks.constructEvent")
 
     return findings
