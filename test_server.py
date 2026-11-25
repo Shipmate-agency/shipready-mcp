@@ -11,6 +11,24 @@ import unittest
 from pathlib import Path
 
 SERVER = Path(__file__).resolve().parent / "server.py"
+sys.path.insert(0, str(SERVER.parent))
+import server  # noqa: E402
+
+
+def scan_ids(files: dict[str, str]) -> list[tuple[str, str]]:
+    """Write files into a temp repo and return (rule_id, file) for each standalone finding."""
+    with tempfile.TemporaryDirectory() as td:
+        for rel, text in files.items():
+            p = Path(td) / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+        return [(f["rule_id"], f["file"]) for f in server._fallback_scan(Path(td))]
+
+
+class TestDetection(unittest.TestCase):
+    def test_public_env_secret_with_suffix(self) -> None:
+        ids = scan_ids({".env.example": "NEXT_PUBLIC_STRIPE_SECRET_KEY=\nVITE_SUPABASE_SERVICE_ROLE_KEY=\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\n"})
+        self.assertEqual(ids.count(("SR-SEC-001", ".env.example")), 2)
 
 
 class TestShipReadyMCP(unittest.TestCase):

@@ -46,7 +46,7 @@ RULE_BY_ID = {r["id"]: r for r in FALLBACK_RULES}
 
 SKIP_DIRS = {".git", "node_modules", ".next", "dist", "build", ".venv", "venv", "__pycache__"}
 PUBLIC_SECRET_RE = re.compile(
-    r"\b(?:NEXT_PUBLIC_|VITE_|PUBLIC_)[A-Z0-9_]*(?:SECRET|SERVICE_ROLE|PRIVATE|API_KEY|TOKEN)\b\s*=",
+    r"\b(?:NEXT_PUBLIC_|VITE_|PUBLIC_)[A-Z0-9_]*(?:SECRET|SERVICE_ROLE|PRIVATE|API_KEY|TOKEN)[A-Z0-9_]*\s*=",
     re.IGNORECASE,
 )
 HARDCODED_KEY_RE = re.compile(r"\b(?:sk_live_[A-Za-z0-9]{16,}|sk-(?:proj-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,})\b")
