@@ -30,6 +30,16 @@ class TestDetection(unittest.TestCase):
         ids = scan_ids({".env.example": "NEXT_PUBLIC_STRIPE_SECRET_KEY=\nVITE_SUPABASE_SERVICE_ROLE_KEY=\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\n"})
         self.assertEqual(ids.count(("SR-SEC-001", ".env.example")), 2)
 
+    def test_gitignore_is_parsed_per_line(self) -> None:
+        key = "sk" + "_live_" + "1234567890abcdef1234"
+        # ".env.example" in .gitignore does not ignore .env
+        self.assertIn(("SR-SEC-003", ".env"), scan_ids({".env": "A=1\n", ".gitignore": ".env.example\n"}))
+        ignored = scan_ids({".env": f"STRIPE_SECRET_KEY={key}\n", ".env.local": f"STRIPE_SECRET_KEY={key}\n",
+                            ".gitignore": "/.env\n.env*.local\n"})
+        self.assertEqual(ignored, [])
+        committed = scan_ids({".env.production": f"STRIPE_SECRET_KEY={key}\n", ".gitignore": ".env\n"})
+        self.assertEqual(committed, [("SR-SEC-002", ".env.production")])
+
     def test_unsigned_webhook_without_stripe_import(self) -> None:
         body = 'export async function POST(req) { const e = await req.json(); if (e.type === "checkout.session.completed") upgrade(); }\n'
         self.assertIn(("SR-PAY-001", "app/api/webhooks/route.ts"), scan_ids({"app/api/webhooks/route.ts": body}))

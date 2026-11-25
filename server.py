@@ -8,6 +8,7 @@ secrets, and unsigned Stripe webhooks locally.
 
 from __future__ import annotations
 
+import fnmatch
 import importlib.util
 import json
 import os
@@ -90,7 +91,13 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
         })
 
     gitignore = (root / ".gitignore").read_text(encoding="utf-8", errors="ignore") if (root / ".gitignore").is_file() else ""
-    if (root / ".env").is_file() and ".env" not in gitignore:
+    # shortcut: root .gitignore only, negations ignored; use `git check-ignore` if this misfires.
+    ignore_patterns = [p.strip().lstrip("/") for p in gitignore.splitlines() if p.strip() and p.strip()[0] not in "#!"]
+
+    def gitignored(name: str) -> bool:
+        return any(fnmatch.fnmatch(name, p) for p in ignore_patterns)
+
+    if (root / ".env").is_file() and not gitignored(".env"):
         add("SR-SEC-003", ".env", 1, ".env file exists and is not listed in .gitignore")
 
     for dirpath, dirnames, filenames in os.walk(root):
@@ -120,7 +127,8 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
             for m in PUBLIC_SECRET_RE.finditer(text):
                 add("SR-SEC-001", rel, _line_no(text, m.start()), f"Client-exposed secret env var: {m.group(0).split('=')[0].strip()}")
 
-            for m in HARDCODED_KEY_RE.finditer(text):
+            # Keys in a gitignored .env are where they belong; only committed files count.
+            for m in ([] if fname.startswith(".env") and gitignored(fname) else HARDCODED_KEY_RE.finditer(text)):
                 add("SR-SEC-002", rel, _line_no(text, m.start()), "Hardcoded live API key detected")
 
             if "service_role" in text and ("createClient" in text or "eyJ" in text):
