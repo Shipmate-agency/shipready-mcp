@@ -202,12 +202,17 @@ TOOLS = [
 ]
 
 
-def handle_request(msg: dict[str, Any]) -> dict[str, Any] | None:
+def handle_request(msg: Any) -> dict[str, Any] | None:
+    if not isinstance(msg, dict) or not isinstance(msg.get("method"), str):
+        req_id = msg.get("id") if isinstance(msg, dict) else None
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32600, "message": "Invalid Request"}}
     method = msg.get("method")
     req_id = msg.get("id")
 
     if method == "notifications/initialized" or req_id is None:
         return None
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
     if method == "initialize":
         return {
             "jsonrpc": "2.0",
@@ -224,15 +229,17 @@ def handle_request(msg: dict[str, Any]) -> dict[str, Any] | None:
         params = msg.get("params") or {}
         name = params.get("name")
         args = params.get("arguments") or {}
+        if name not in {t["name"] for t in TOOLS}:
+            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": f"Unknown tool: {name}"}}
         try:
+            if not isinstance(args, dict):
+                raise ValueError("arguments must be an object")
             if name == "shipready_list_rules":
                 data = list_rules()
             elif name == "shipready_scan_repo":
                 if not isinstance(args.get("path"), str) or not args["path"].strip():
                     raise ValueError("Missing required string argument: path")
                 data = scan_repo(args["path"])
-            else:
-                return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {name}"}}
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
@@ -280,7 +287,11 @@ def main() -> int:
     stdin = sys.stdin.buffer
     stdout = sys.stdout.buffer
     while True:
-        msg, framed = read_message(stdin)
+        try:
+            msg, framed = read_message(stdin)
+        except ValueError:  # bad JSON, bad UTF-8 or bad Content-Length: report and keep serving
+            write_message(stdout, {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}, False)
+            continue
         if msg is None:
             break
         resp = handle_request(msg)

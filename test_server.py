@@ -71,6 +71,27 @@ class TestShipReadyMCP(unittest.TestCase):
                 proc.terminate()
                 proc.wait(timeout=5)
 
+    def test_protocol_errors_keep_server_alive(self) -> None:
+        lines = [
+            "{not json",
+            "[1, 2]",
+            json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}),
+            json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "nope", "arguments": {}}}),
+            json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "shipready_scan_repo", "arguments": "x"}}),
+            json.dumps({"jsonrpc": "2.0", "id": 4, "method": "foo/bar"}),
+            json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/list"}),
+        ]
+        out = subprocess.run(
+            [sys.executable, str(SERVER)], input="\n".join(lines) + "\n",
+            capture_output=True, text=True, timeout=10,
+        )
+        resp = [json.loads(l) for l in out.stdout.splitlines()]
+        self.assertEqual([r.get("error", {}).get("code") for r in resp], [-32700, -32600, None, -32602, None, -32601, None])
+        self.assertEqual(resp[2]["result"], {})
+        self.assertTrue(resp[4]["result"]["isError"])
+        self.assertIn("tools", resp[6]["result"])
+        self.assertEqual(out.stderr, "")
+
 
 if __name__ == "__main__":
     unittest.main()
