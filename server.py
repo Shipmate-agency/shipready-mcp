@@ -52,7 +52,10 @@ PUBLIC_SECRET_RE = re.compile(
 )
 HARDCODED_KEY_RE = re.compile(r"\b(?:[sr]k_live_[A-Za-z0-9]{16,}|sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{60,})\b")
 CREATE_TABLE_RE = re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_.\"]+)", re.IGNORECASE)
-USING_TRUE_RE = re.compile(r"create\s+policy[\s\S]{0,220}?\bfor\s+(?:all|insert|update|delete)\b[\s\S]{0,220}?using\s*\(\s*true\s*\)", re.IGNORECASE)
+ENABLE_RLS_RE = re.compile(
+    r"alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?([a-zA-Z0-9_.\"]+)\s+enable\s+row\s+level\s+security", re.IGNORECASE
+)
+USING_TRUE_RE =re.compile(r"create\s+policy[\s\S]{0,220}?\bfor\s+(?:all|insert|update|delete)\b[\s\S]{0,220}?using\s*\(\s*true\s*\)", re.IGNORECASE)
 
 
 def _load_shipready_module() -> Any | None:
@@ -100,6 +103,8 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
     if (root / ".env").is_file() and not gitignored(".env"):
         add("SR-SEC-003", ".env", 1, ".env file exists and is not listed in .gitignore")
 
+    created: list[tuple[str, str, int]] = []
+    rls_enabled: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for fname in filenames:
@@ -115,12 +120,9 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
             rel = str(fpath.relative_to(root))
 
             if fname.endswith(".sql"):
-                lower = text.lower()
                 for m in CREATE_TABLE_RE.finditer(text):
-                    tbl = m.group(1).strip('"')
-                    short = tbl.split(".")[-1].lower()
-                    if f"enable row level security" not in lower or short not in lower[lower.find("enable row level security"):]:
-                        add("SR-SUPA-001", rel, _line_no(text, m.start()), f"Table {tbl} created without ENABLE ROW LEVEL SECURITY")
+                    created.append((m.group(1).replace('"', ""), rel, _line_no(text, m.start())))
+                rls_enabled.update(m.group(1).replace('"', "").split(".")[-1].lower() for m in ENABLE_RLS_RE.finditer(text))
                 for m in USING_TRUE_RE.finditer(text):
                     add("SR-SUPA-002", rel, _line_no(text, m.start()), "Write policy uses USING (true)")
 
@@ -140,6 +142,10 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
             if "webhook" in rel.lower() and is_stripe and "constructEvent" not in text:
                 add("SR-PAY-001", rel, 1, "Stripe webhook handler does not call stripe.webhooks.constructEvent")
 
+    # RLS is often enabled in a later migration, so match tables across all .sql files.
+    for tbl, rel, line in created:
+        if tbl.split(".")[-1].lower() not in rls_enabled:
+            add("SR-SUPA-001", rel, line, f"Table {tbl} created without ENABLE ROW LEVEL SECURITY")
     return findings
 
 

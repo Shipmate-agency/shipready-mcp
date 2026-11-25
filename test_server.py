@@ -40,6 +40,14 @@ class TestDetection(unittest.TestCase):
         committed = scan_ids({".env.production": f"STRIPE_SECRET_KEY={key}\n", ".gitignore": ".env\n"})
         self.assertEqual(committed, [("SR-SEC-002", ".env.production")])
 
+    def test_rls_matched_per_table_across_migrations(self) -> None:
+        ids = scan_ids({
+            "m/001.sql": "create table public.profiles (id uuid);\nalter table public.profiles enable row level security;\n"
+                         "create table public.posts (id uuid);\ncreate table \"public\".\"orders\" (id uuid);\n",
+            "m/002.sql": "alter table if exists \"public\".\"orders\" enable row level security;\n",
+        })
+        self.assertEqual(ids, [("SR-SUPA-001", "m/001.sql")])  # only posts
+
     def test_hardcoded_key_formats(self) -> None:
         keys = [
             "rk" + "_live_" + "51Habcdefghijklmnopqrstuvwx",
