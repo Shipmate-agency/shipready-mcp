@@ -28,13 +28,13 @@
 
 ## Quick Install
 
-ShipReady MCP is not published on PyPI or npm yet, so install it from this repository. Needs Python 3.10+.
+ShipReady MCP is on PyPI as [`shipready-mcp`](https://pypi.org/project/shipready-mcp/). With [uv](https://docs.astral.sh/uv/), use `"command": "uvx", "args": ["shipready-mcp"]` in the configs below and skip the clone. Without uv, run it from a clone. Needs Python 3.10+.
 
 ```bash
 git clone https://github.com/Shipmate-agency/shipready-mcp
 ```
 
-Then point your client at the absolute path of `server.py` in that clone (replace `/path/to/shipready-mcp` below). With [uv](https://docs.astral.sh/uv/) you can skip the clone and use `"command": "uvx", "args": ["--from", "git+https://github.com/Shipmate-agency/shipready-mcp", "shipready-mcp"]` instead.
+Then point your client at the absolute path of `server.py` in that clone (replace `/path/to/shipready-mcp` below).
 
 ### Cursor (`.cursor/mcp.json` in your project, or `~/.cursor/mcp.json`)
 ```json
