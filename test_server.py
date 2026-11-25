@@ -48,6 +48,19 @@ class TestDetection(unittest.TestCase):
         })
         self.assertEqual(ids, [("SR-SUPA-001", "m/001.sql")])  # only posts
 
+    def test_write_policy_allow_all_per_statement(self) -> None:
+        sql = (
+            "create table t (id uuid);\nalter table t enable row level security;\n"
+            'create policy "own update" on t for update using (auth.uid() = id);\n'  # line 3: fine
+            'create policy "public read" on t for select using (true);\n'           # line 4: fine (read)
+            'create policy "implicit all" on t using (true);\n'                     # line 5: FOR ALL by default
+            'create policy "open insert" on t for insert with check (true);\n'     # line 6
+        )
+        with tempfile.TemporaryDirectory() as td:
+            (Path(td) / "a.sql").write_text(sql, encoding="utf-8")
+            lines = [f["line"] for f in server._fallback_scan(Path(td)) if f["rule_id"] == "SR-SUPA-002"]
+        self.assertEqual(lines, [5, 6])
+
     def test_hardcoded_key_formats(self) -> None:
         keys = [
             "rk" + "_live_" + "51Habcdefghijklmnopqrstuvwx",

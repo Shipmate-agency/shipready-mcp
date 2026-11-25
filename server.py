@@ -55,7 +55,9 @@ CREATE_TABLE_RE = re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-
 ENABLE_RLS_RE = re.compile(
     r"alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?([a-zA-Z0-9_.\"]+)\s+enable\s+row\s+level\s+security", re.IGNORECASE
 )
-USING_TRUE_RE =re.compile(r"create\s+policy[\s\S]{0,220}?\bfor\s+(?:all|insert|update|delete)\b[\s\S]{0,220}?using\s*\(\s*true\s*\)", re.IGNORECASE)
+POLICY_RE = re.compile(r"create\s+policy[^;]*", re.IGNORECASE)  # one statement, so checks cannot bleed into the next policy
+FOR_SELECT_RE = re.compile(r"\bfor\s+select\b", re.IGNORECASE)  # no FOR clause means FOR ALL
+ALLOW_ALL_RE = re.compile(r"\b(?:using|with\s+check)\s*\(\s*true\s*\)", re.IGNORECASE)
 
 
 def _load_shipready_module() -> Any | None:
@@ -123,8 +125,9 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
                 for m in CREATE_TABLE_RE.finditer(text):
                     created.append((m.group(1).replace('"', ""), rel, _line_no(text, m.start())))
                 rls_enabled.update(m.group(1).replace('"', "").split(".")[-1].lower() for m in ENABLE_RLS_RE.finditer(text))
-                for m in USING_TRUE_RE.finditer(text):
-                    add("SR-SUPA-002", rel, _line_no(text, m.start()), "Write policy uses USING (true)")
+                for m in POLICY_RE.finditer(text):
+                    if not FOR_SELECT_RE.search(m.group(0)) and ALLOW_ALL_RE.search(m.group(0)):
+                        add("SR-SUPA-002", rel, _line_no(text, m.start()), "Write policy uses USING (true) or WITH CHECK (true)")
 
             for m in PUBLIC_SECRET_RE.finditer(text):
                 add("SR-SEC-001", rel, _line_no(text, m.start()), f"Client-exposed secret env var: {m.group(0).split('=')[0].strip()}")
