@@ -296,7 +296,10 @@ def main() -> int:
             continue
         if msg is None:
             break
-        resp = handle_request(msg)
+        try:
+            resp = handle_request(msg)
+        except Exception:  # e.g. params of the wrong type; one bad request must not end the session
+            resp = {"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32603, "message": "Internal error"}}
         if resp is not None:
             write_message(stdout, resp, framed)
     return 0

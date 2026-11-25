@@ -95,6 +95,7 @@ class TestShipReadyMCP(unittest.TestCase):
             json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "nope", "arguments": {}}}),
             json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "shipready_scan_repo", "arguments": "x"}}),
             json.dumps({"jsonrpc": "2.0", "id": 4, "method": "foo/bar"}),
+            json.dumps({"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": [1]}),
             json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/list"}),
         ]
         out = subprocess.run(
@@ -102,10 +103,10 @@ class TestShipReadyMCP(unittest.TestCase):
             capture_output=True, text=True, timeout=10,
         )
         resp = [json.loads(l) for l in out.stdout.splitlines()]
-        self.assertEqual([r.get("error", {}).get("code") for r in resp], [-32700, -32600, None, -32602, None, -32601, None])
+        self.assertEqual([r.get("error", {}).get("code") for r in resp], [-32700, -32600, None, -32602, None, -32601, -32603, None])
         self.assertEqual(resp[2]["result"], {})
         self.assertTrue(resp[4]["result"]["isError"])
-        self.assertIn("tools", resp[6]["result"])
+        self.assertIn("tools", resp[7]["result"])
         self.assertEqual(out.stderr, "")
 
 
