@@ -62,6 +62,8 @@ ENABLE_RLS_RE = re.compile(
 POLICY_RE = re.compile(r"create\s+policy[^;]*", re.IGNORECASE)  # one statement, so checks cannot bleed into the next policy
 FOR_SELECT_RE = re.compile(r"\bfor\s+select\b", re.IGNORECASE)  # no FOR clause means FOR ALL
 ALLOW_ALL_RE = re.compile(r"\b(?:using|with\s+check)\s*\(\s*true\s*\)", re.IGNORECASE)
+# service_role bypasses RLS anyway, so a policy granted only TO service_role opens nothing
+SERVICE_ROLE_ONLY_RE = re.compile(r"\bto\s+service_role\b(?!\s*,)", re.IGNORECASE)
 
 
 def _load_shipready_module() -> Any | None:
@@ -137,7 +139,7 @@ def _fallback_scan(root: Path) -> list[dict[str, Any]]:
                     created.append((m.group(1).replace('"', ""), rel, _line_no(text, m.start())))
                 rls_enabled.update(m.group(1).replace('"', "").split(".")[-1].lower() for m in ENABLE_RLS_RE.finditer(text))
                 for m in POLICY_RE.finditer(text):
-                    if not FOR_SELECT_RE.search(m.group(0)) and ALLOW_ALL_RE.search(m.group(0)):
+                    if not FOR_SELECT_RE.search(m.group(0)) and ALLOW_ALL_RE.search(m.group(0)) and not SERVICE_ROLE_ONLY_RE.search(m.group(0)):
                         add("SR-SUPA-002", rel, _line_no(text, m.start()), "Write policy uses USING (true) or WITH CHECK (true)")
 
             for m in PUBLIC_SECRET_RE.finditer(text):

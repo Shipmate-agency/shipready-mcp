@@ -56,11 +56,13 @@ class TestDetection(unittest.TestCase):
             'create policy "public read" on t for select using (true);\n'           # line 4: fine (read)
             'create policy "implicit all" on t using (true);\n'                     # line 5: FOR ALL by default
             'create policy "open insert" on t for insert with check (true);\n'     # line 6
+            'create policy "svc" on t for all to service_role using (true);\n'      # line 7: fine (bypasses RLS anyway)
+            'create policy "svc+anon" on t for all to service_role, anon using (true);\n'  # line 8
         )
         with tempfile.TemporaryDirectory() as td:
             (Path(td) / "a.sql").write_text(sql, encoding="utf-8")
             lines = [f["line"] for f in server._fallback_scan(Path(td)) if f["rule_id"] == "SR-SUPA-002"]
-        self.assertEqual(lines, [5, 6])
+        self.assertEqual(lines, [5, 6, 8])
 
     def test_service_role_key_by_jwt_payload(self) -> None:
         def jwt(role: str) -> str:
